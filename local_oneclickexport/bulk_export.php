@@ -2,12 +2,17 @@
 require_once(__DIR__.'/../../config.php');
 require_once($CFG->dirroot.'/local/oneclickexport/classes/form/bulk_export.php');
 
+// Proper context initialization
+$context = context_system::instance();
+$PAGE->set_context($context);
+
 require_login();
-require_capability('local/oneclickexport:export', context_system::instance());
+require_capability('local/oneclickexport:bulkexport', $context);
 
 $PAGE->set_url(new moodle_url('/local/oneclickexport/bulk_export.php'));
 $PAGE->set_title(get_string('bulkexport', 'local_oneclickexport'));
 $PAGE->set_heading(get_string('bulkexport', 'local_oneclickexport'));
+$PAGE->set_pagelayout('admin');
 
 $form = new local_oneclickexport_bulk_export_form();
 
@@ -19,10 +24,15 @@ if ($form->is_cancelled()) {
     $current = 0;
     
     $zipname = 'bulk_export_' . date('Ymd_His') . '.zip';
-    $tempzip = tempnam($CFG->tempdir, 'zip');
-    $zip = new ZipArchive();
+    $tempdir = $CFG->tempdir . '/bulkexport_' . time();
+    check_dir_exists($tempdir);
+    $tempzip = $tempdir . '/' . $zipname;
     
-    if ($zip->open($tempzip, ZipArchive::CREATE) !== true) {
+    // Create empty file first to avoid deprecation warning
+    file_put_contents($tempzip, '');
+    
+    $zip = new ZipArchive();
+    if ($zip->open($tempzip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
         throw new moodle_exception('cannotcreatezip', 'local_oneclickexport');
     }
     
@@ -61,7 +71,9 @@ if ($form->is_cancelled()) {
     ];
     
     $fs->create_file_from_pathname($fileinfo, $tempzip);
-    unlink($tempzip);
+    
+    // Clean up temp directory
+    remove_dir($tempdir);
     
     // Notify user
     $message = new \core\message\message();

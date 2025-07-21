@@ -21,7 +21,8 @@ $string['bulkexportcomplete'] = 'Bulk export complete';
 $string['bulkexportready'] = 'Your bulk export of {$a} courses is ready for download.';
 $string['bulkexportsmall'] = 'Bulk export ready';
 $string['bulkexportstarted'] = 'Bulk export started for {$a} courses. You will receive a notification when all exports are complete.';
-
+$string['oneclickexport:export'] = 'Export single course to MBZ format';
+$string['oneclickexport:bulkexport'] = 'Bulk export multiple courses';
 // Admin settings
 $string['exportdefaults'] = 'Default Export Settings';
 $string['includeusers_desc'] = 'Include user data in exports by default';
@@ -44,3 +45,18 @@ $string['download'] = 'Download';
 $string['started'] = 'Started';
 $string['completed'] = 'Completed';
 $string['failed'] = 'Failed';
+
+
+// Add to lang/en/local_oneclickexport.php
+$string['includecalendarevents'] = 'Include calendar events';
+$string['includecalendarevents_desc'] = 'Include calendar events in course exports';
+$string['includeuserscompletion'] = 'Include user completion';
+$string['includeuserscompletion_desc'] = 'Include user completion information in exports';
+$string['backuperror'] = 'Backup error: {$a}';
+$string['includeroleassignments'] = 'Include user role assignments';
+$string['includelogs'] = 'Include course logs';
+$string['includecomments'] = 'Include course comments';
+$string['includeusers'] = 'Include users';// Export settings descriptions.
+$string['exportdefaults_desc'] = 'Default values used when exporting a course. These settings will be pre-selected in the export form.';
+$string['uisettings_desc'] = 'Controls the display options for the one-click export UI, including visibility in course navigation and dashboard.';
+$string['exportoptions'] = 'Export Options';

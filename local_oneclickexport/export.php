@@ -9,7 +9,7 @@ require_login($course);
 $context = context_course::instance($course->id);
 require_capability('local/oneclickexport:export', $context);
 
-// Set up backup controller
+// Create backup controller
 $bc = new backup_controller(
     backup::TYPE_1COURSE,
     $course->id,
@@ -19,53 +19,77 @@ $bc = new backup_controller(
     $USER->id
 );
 
-// Configure with default settings
+// Get backup plan and settings
+$plan = $bc->get_plan();
+
+// Define default settings with fallback checks
 $settings = [
-    'users' => 0,               // Don't include users
-    'anonymize' => 0,            // Don't anonymize
-    'role_assignments' => 0,     // Don't include role assignments
-    'activities' => 1,           // Include activities
-    'blocks' => 1,               // Include blocks
-    'filters' => 1,              // Include filters
-    'comments' => 0,             // Don't include comments
-    'completion_information' => 0,
-    'logs' => 0,
-    'histories' => 0,
+    'users' => ['default' => 0, 'min' => 0, 'max' => 1],
+    'anonymize' => ['default' => 0, 'min' => 0, 'max' => 1],
+    'role_assignments' => ['default' => 0, 'min' => 0, 'max' => 1],
+    'activities' => ['default' => 1, 'min' => 0, 'max' => 1],
+    'blocks' => ['default' => 1, 'min' => 0, 'max' => 1],
+    'filters' => ['default' => 1, 'min' => 0, 'max' => 1],
+    'comments' => ['default' => 0, 'min' => 0, 'max' => 1],
+    'completion_information' => ['default' => 0, 'min' => 0, 'max' => 1],
+    'logs' => ['default' => 0, 'min' => 0, 'max' => 1],
+    'histories' => ['default' => 0, 'min' => 0, 'max' => 1],
+    'calendarevents' => ['default' => 0, 'min' => 0, 'max' => 1], // Added for newer Moodle versions
+    'userscompletion' => ['default' => 0, 'min' => 0, 'max' => 1] // Added for newer Moodle versions
 ];
 
-foreach ($settings as $name => $value) {
-    $bc->get_plan()->get_setting($name)->set_value($value);
+foreach ($settings as $name => $config) {
+    try {
+        $setting = $plan->get_setting($name);
+        if ($setting) {
+            // Validate before setting
+            $value = $config['default'];
+            $value = max($config['min'], min($config['max'], $value));
+            $setting->set_value($value);
+        }
+    } catch (Exception $e) {
+        // Skip if setting doesn't exist
+        debugging("Setting {$name} not available in this Moodle version", DEBUG_DEVELOPER);
+        continue;
+    }
 }
 
-// Create temp dir and execute backup
-$backupid = $bc->get_backupid();
-$tempdir = $CFG->tempdir.'/backup/'.$backupid;
-check_dir_exists($tempdir);
+// Execute backup
+try {
+    $bc->execute_plan();
+    $backupid = $bc->get_backupid();
+    
+    // Get the backup file
+    $fs = get_file_storage();
+    $files = $fs->get_area_files(
+        context_system::instance()->id,
+        'backup',
+        'course',
+        $backupid,
+        'filename',
+        false
+    );
 
-$bc->execute_plan();
-$bc->destroy();
+    if (empty($files)) {
+        throw new moodle_exception('nobackupfile', 'local_oneclickexport');
+    }
 
-// Get the backup file
-$fs = get_file_storage();
-$files = $fs->get_area_files(
-    context_system::instance()->id,
-    'backup',
-    'course',
-    $backupid,
-    'filename',
-    false
-);
-
-if (empty($files)) {
-    throw new moodle_exception('nobackupfile', 'local_oneclickexport');
+    $file = reset($files);
+    
+    // Generate filename
+    $filename = clean_filename($course->shortname . '-backup-' . date('Ymd-His') . '.mbz');
+    
+    // Send file with proper headers
+    send_stored_file($file, 0, 0, true, ['filename' => $filename]);
+    
+} catch (Exception $e) {
+    // Proper error handling
+    $bc->destroy();
+    throw new moodle_exception('backuperror', 'local_oneclickexport', '', $e->getMessage());
+} finally {
+    // Clean up
+    if (isset($backupid)) {
+        $fs->delete_area_files(context_system::instance()->id, 'backup', 'course', $backupid);
+    }
+    $bc->destroy();
 }
-
-$file = reset($files);
-
-// Send the file
-send_stored_file($file, 0, 0, true, [
-    'filename' => clean_filename($course->shortname . '-backup-' . date('Ymd-His')) . '.mbz'
-]);
-
-// Clean up
-$fs->delete_area_files(context_system::instance()->id, 'backup', 'course', $backupid);
