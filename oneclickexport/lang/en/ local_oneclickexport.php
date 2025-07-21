@@ -14,3 +14,33 @@ $string['exportfailed'] = 'Export failed';
 $string['retry'] = 'Retry';
 $string['eventexportstarted'] = 'One-click export started';
 $string['eventexportcompleted'] = 'One-click export completed';
+$string['bulkexport'] = 'Bulk Course Export';
+$string['selectcourses'] = 'Select courses to export';
+$string['startexport'] = 'Start Export';
+$string['bulkexportcomplete'] = 'Bulk export complete';
+$string['bulkexportready'] = 'Your bulk export of {$a} courses is ready for download.';
+$string['bulkexportsmall'] = 'Bulk export ready';
+$string['bulkexportstarted'] = 'Bulk export started for {$a} courses. You will receive a notification when all exports are complete.';
+
+// Admin settings
+$string['exportdefaults'] = 'Default Export Settings';
+$string['includeusers_desc'] = 'Include user data in exports by default';
+$string['includecomments_desc'] = 'Include comments in exports by default';
+$string['includelogs_desc'] = 'Include logs in exports by default';
+$string['includeroleassignments_desc'] = 'Include role assignments in exports by default';
+$string['retentionsettings'] = 'Retention Settings';
+$string['retentionsettings_desc'] = 'Configure how long export logs and files are kept';
+$string['logretention'] = 'Log retention period';
+$string['logretention_desc'] = 'How long to keep export history records';
+$string['uisettings'] = 'UI Settings';
+$string['showondashboard'] = 'Show on dashboard';
+$string['showondashboard_desc'] = 'Show export button on course cards in dashboard';
+$string['showinnavigation'] = 'Show in navigation';
+$string['showinnavigation_desc'] = 'Show export button in course administration menu';
+
+// Report
+$string['exportreport'] = 'Export History Report';
+$string['download'] = 'Download';
+$string['started'] = 'Started';
+$string['completed'] = 'Completed';
+$string['failed'] = 'Failed';
