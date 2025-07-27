@@ -38,28 +38,28 @@ if ($hassiteconfig) {
     
     $settings->add(new admin_setting_configcheckbox(
         'local_oneclickexport/includeusers',
-        get_string('includeusers', 'backup'),
+        get_string('includeusers', 'local_oneclickexport'),
         get_string('includeusers_desc', 'local_oneclickexport'),
         0
     ));
     
     $settings->add(new admin_setting_configcheckbox(
         'local_oneclickexport/includecomments',
-        get_string('includecomments', 'backup'),
+        get_string('includecomments', 'local_oneclickexport'),
         get_string('includecomments_desc', 'local_oneclickexport'),
         0
     ));
     
     $settings->add(new admin_setting_configcheckbox(
         'local_oneclickexport/includelogs',
-        get_string('includelogs', 'backup'),
+        get_string('includelogs', 'local_oneclickexport'),
         get_string('includelogs_desc', 'local_oneclickexport'),
         0
     ));
     
     $settings->add(new admin_setting_configcheckbox(
         'local_oneclickexport/includeroleassignments',
-        get_string('includeroleassignments', 'backup'),
+        get_string('includeroleassignments', 'local_oneclickexport'),
         get_string('includeroleassignments_desc', 'local_oneclickexport'),
         0
     ));

@@ -26,9 +26,8 @@ class local_oneclickexport_logging {
         
         $DB->update_record('local_oneclickexport_log', $record);
     }
-    
-    public static function get_export_history($courseid = null, $userid = null, $limit = 10) {
-        global $DB, $USER;
+    public static function count_export_history($courseid = null, $userid = null) {
+        global $DB;
         
         $params = [];
         $conditions = [];
@@ -45,14 +44,43 @@ class local_oneclickexport_logging {
         
         $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
         
+        return $DB->count_records_sql(
+            "SELECT COUNT(l.id)
+             FROM {local_oneclickexport_log} l
+             {$where}",
+            $params
+        );
+    }
+    public static function cleanup_old_logs($days = 30) {
+        global $DB;
+        $oldest = time() - ($days * 24 * 60 * 60);
+        $DB->delete_records_select('local_oneclickexport_log', 'timecreated < ?', [$oldest]);
+    }
+    public static function get_export_history($courseid = null, $userid = null, $limit = 0, $offset = 0) {
+        global $DB;
+        
+        $params = [];
+        $conditions = [];
+        
+        if ($courseid) {
+            $conditions[] = 'l.courseid = :courseid';
+            $params['courseid'] = $courseid;
+        }
+        
+        if ($userid) {
+            $conditions[] = 'l.userid = :userid';
+            $params['userid'] = $userid;
+        }
+        
+        $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+        
         $sql = "SELECT l.*, c.shortname as courseshortname, u.firstname, u.lastname
                 FROM {local_oneclickexport_log} l
                 JOIN {course} c ON c.id = l.courseid
                 JOIN {user} u ON u.id = l.userid
                 {$where}
-                ORDER BY l.timecreated DESC
-                LIMIT {$limit}";
+                ORDER BY l.timecreated DESC";
                 
-        return $DB->get_records_sql($sql, $params);
+        return $DB->get_records_sql($sql, $params, $offset, $limit);
     }
 }

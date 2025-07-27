@@ -1,95 +1,151 @@
 <?php
-require_once(__DIR__.'/../../config.php');
-require_once($CFG->dirroot.'/backup/util/includes/backup_includes.php');
+// Detect if we're running in CLI mode
+define('CLI_SCRIPT', isset($argc) && is_numeric($argc));
 
-$courseid = required_param('id', PARAM_INT);
-$course = get_course($courseid);
-require_login($course);
+if (CLI_SCRIPT) {
+    require(__DIR__.'/../../config.php');
+    require_once($CFG->libdir.'/clilib.php');
+    require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 
-$context = context_course::instance($course->id);
-require_capability('local/oneclickexport:export', $context);
+    // CLI options
+    list($options, $unrecognized) = cli_get_params([
+        'courseid' => false,
+        'courseshortname' => '',
+        'destination' => '',
+        'help' => false,
+    ], ['h' => 'help']);
 
-// Create backup controller
-$bc = new backup_controller(
-    backup::TYPE_1COURSE,
-    $course->id,
-    backup::FORMAT_MOODLE,
-    backup::INTERACTIVE_NO,
-    backup::MODE_GENERAL,
-    $USER->id
-);
-
-// Get backup plan and settings
-$plan = $bc->get_plan();
-
-// Define default settings with fallback checks
-$settings = [
-    'users' => ['default' => 0, 'min' => 0, 'max' => 1],
-    'anonymize' => ['default' => 0, 'min' => 0, 'max' => 1],
-    'role_assignments' => ['default' => 0, 'min' => 0, 'max' => 1],
-    'activities' => ['default' => 1, 'min' => 0, 'max' => 1],
-    'blocks' => ['default' => 1, 'min' => 0, 'max' => 1],
-    'filters' => ['default' => 1, 'min' => 0, 'max' => 1],
-    'comments' => ['default' => 0, 'min' => 0, 'max' => 1],
-    'completion_information' => ['default' => 0, 'min' => 0, 'max' => 1],
-    'logs' => ['default' => 0, 'min' => 0, 'max' => 1],
-    'histories' => ['default' => 0, 'min' => 0, 'max' => 1],
-    'calendarevents' => ['default' => 0, 'min' => 0, 'max' => 1], // Added for newer Moodle versions
-    'userscompletion' => ['default' => 0, 'min' => 0, 'max' => 1] // Added for newer Moodle versions
-];
-
-foreach ($settings as $name => $config) {
-    try {
-        $setting = $plan->get_setting($name);
-        if ($setting) {
-            // Validate before setting
-            $value = $config['default'];
-            $value = max($config['min'], min($config['max'], $value));
-            $setting->set_value($value);
-        }
-    } catch (Exception $e) {
-        // Skip if setting doesn't exist
-        debugging("Setting {$name} not available in this Moodle version", DEBUG_DEVELOPER);
-        continue;
+    if ($options['help'] || !($options['courseid'] || $options['courseshortname'])) {
+        $help = "Perform backup of the given course.\n\nOptions:\n--courseid=INTEGER Course ID\n--courseshortname=STRING Course shortname\n--destination=STRING Backup destination path\n-h, --help Print this help\n";
+        echo $help;
+        die;
     }
+
+    // Find course
+    if ($options['courseid']) {
+        $course = $DB->get_record('course', ['id' => $options['courseid']], '*', MUST_EXIST);
+    } else {
+        $course = $DB->get_record('course', ['shortname' => $options['courseshortname']], '*', MUST_EXIST);
+    }
+    
+    $userid = get_admin()->id;
+} else {
+    // Web interface mode
+    require_once(__DIR__.'/../../config.php');
+    require_once($CFG->dirroot.'/backup/util/includes/backup_includes.php');
+
+    $courseid = required_param('id', PARAM_INT);
+    $course = get_course($courseid);
+    require_login($course);
+    $context = context_course::instance($course->id);
+    require_capability('local/oneclickexport:export', $context);
+    $userid = $USER->id;
 }
 
-// Execute backup
+// Common setup for both CLI and web
+@set_time_limit(0);
+raise_memory_limit(MEMORY_HUGE);
+
+$bc = null;
+$backupid = null;
+$fs = get_file_storage();
+
 try {
-    $bc->execute_plan();
-    $backupid = $bc->get_backupid();
-    
-    // Get the backup file
-    $fs = get_file_storage();
-    $files = $fs->get_area_files(
-        context_system::instance()->id,
-        'backup',
-        'course',
-        $backupid,
-        'filename',
-        false
+    // Initialize backup controller
+    $bc = new backup_controller(
+        backup::TYPE_1COURSE,
+        $course->id,
+        backup::FORMAT_MOODLE,
+        CLI_SCRIPT ? backup::INTERACTIVE_YES : backup::INTERACTIVE_NO,
+        backup::MODE_GENERAL,
+        $userid
     );
 
-    if (empty($files)) {
-        throw new moodle_exception('nobackupfile', 'local_oneclickexport');
+    // Configure settings
+    $plan = $bc->get_plan();
+    $settings = [
+        'users' => 0,
+        'anonymize' => 0,
+        'activities' => 1,
+        'blocks' => 1,
+        'filters' => 1
+    ];
+
+    foreach ($settings as $name => $value) {
+        try {
+            $plan->get_setting($name)->set_value($value);
+        } catch (Exception $e) {
+            if (CLI_SCRIPT) {
+                mtrace("Notice: Setting {$name} not available");
+            } else {
+                debugging("Setting {$name} not available", DEBUG_DEVELOPER);
+            }
+        }
     }
 
-    $file = reset($files);
+    // Set filename
+    $format = $bc->get_format();
+    $type = $bc->get_type();
+    $id = $bc->get_id();
+    $filename = backup_plan_dbops::get_default_backup_filename($format, $type, $id, 0, 0);
+
+    if (!CLI_SCRIPT) {
+        $filename = clean_filename($course->shortname . '-backup-' . date('Ymd-His') . '.mbz');
+    }
+    $plan->get_setting('filename')->set_value($filename);
+
+    // Execute backup
+    if (CLI_SCRIPT) {
+        $bc->finish_ui();
+        mtrace("Starting backup for course: {$course->fullname} (ID: {$course->id})");
+    }
     
-    // Generate filename
-    $filename = clean_filename($course->shortname . '-backup-' . date('Ymd-His') . '.mbz');
-    
-    // Send file with proper headers
-    send_stored_file($file, 0, 0, true, ['filename' => $filename]);
-    
+    $bc->execute_plan();
+    $results = $bc->get_results();
+    $file = $results['backup_destination'];
+
+    if (CLI_SCRIPT) {
+        // Handle CLI destination
+        if (!empty($options['destination'])) {
+            $dir = rtrim($options['destination'], '/');
+            if (is_dir($dir) && is_writable($dir)) {
+                $target = $dir.'/'.$filename;
+                if ($file->copy_content_to($target)) {
+                    $file->delete();
+                    mtrace("Backup saved to: {$target}");
+                } else {
+                    mtrace("Failed to save backup to destination");
+                }
+            } else {
+                mtrace("Destination directory not writable");
+            }
+        } else {
+            mtrace("Backup completed. File available in course backup area");
+        }
+    } else {
+        // Handle web download
+        if ($file) {
+            send_stored_file($file, 0, 0, true, [
+                'filename' => $filename,
+                'fullpath' => true
+            ]);
+        } else {
+            throw new moodle_exception('nobackupfile', 'local_oneclickexport');
+        }
+    }
+
 } catch (Exception $e) {
-    // Proper error handling
-    $bc->destroy();
-    throw new moodle_exception('backuperror', 'local_oneclickexport', '', $e->getMessage());
+    if (CLI_SCRIPT) {
+        mtrace("Backup failed: " . $e->getMessage());
+        exit(1);
+    } else {
+        throw new moodle_exception('backuperror', 'local_oneclickexport', '', $e->getMessage());
+    }
 } finally {
-    // Clean up
-    if (isset($backupid)) {
+    if ($bc) {
+        $bc->destroy();
+    }
+    if (!empty($backupid)) {
         $fs->delete_area_files(context_system::instance()->id, 'backup', 'course', $backupid);
     }
-    $bc->destroy();
 }

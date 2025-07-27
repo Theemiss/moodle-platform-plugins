@@ -1,0 +1,20 @@
+➜  moodle_plugins git:(main) ✗ curl -X POST "https://techschool.es/webservice/rest/server.php" \
+-d "wstoken=ca8dc397aaa95fa4b139224603179794" \
+-d "wsfunction=local_oneclickexport_export_course" \
+-d "moodlewsrestformat=json" \
+-d "courseid=81"
+
+
+
+
+curl -X POST https://techschool.es/webservice/rest/server.php \
+-d "wstoken=0cf732cd21f7ed950f5f0346e7a2a58b" \
+-d "wsfunction=local_oneclickexport_export_course" \
+-d "moodlewsrestformat=json" \
+-d "courseid=81"
+
+
+curl -X POST "https://techschool.es/webservice/rest/server.php" \
+  -d "wstoken=0cf732cd21f7ed950f5f0346e7a2a58b" \
+  -d "wsfunction=local_oneclickexport_list_courses" \
+  -d "moodlewsrestformat=json"
