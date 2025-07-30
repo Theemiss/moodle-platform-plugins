@@ -1,0 +1,568 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="4.22.0@fc2c6ab4d5fa5d644d8617089f012f3bb84b8703">
+  <file src="lib.php">
+    <DocblockTypeContradiction occurrences="1">
+      <code>\is_string($feature)</code>
+    </DocblockTypeContradiction>
+    <InvalidGlobal occurrences="1">
+      <code>global $CFG;</code>
+    </InvalidGlobal>
+    <MissingDependency occurrences="2">
+      <code>mod_matrix_mod_form</code>
+      <code>mod_matrix_mod_form</code>
+    </MissingDependency>
+    <MixedArgument occurrences="1">
+      <code>$moduleinfo-&gt;instance</code>
+    </MixedArgument>
+    <MixedInferredReturnType occurrences="1">
+      <code>int</code>
+    </MixedInferredReturnType>
+    <UndefinedConstant occurrences="10">
+      <code>FEATURE_BACKUP_MOODLE2</code>
+      <code>FEATURE_COMPLETION_HAS_RULES</code>
+      <code>FEATURE_COMPLETION_TRACKS_VIEWS</code>
+      <code>FEATURE_GRADE_HAS_GRADE</code>
+      <code>FEATURE_GRADE_OUTCOMES</code>
+      <code>FEATURE_GROUPINGS</code>
+      <code>FEATURE_GROUPS</code>
+      <code>FEATURE_IDNUMBER</code>
+      <code>FEATURE_MOD_INTRO</code>
+      <code>FEATURE_SHOW_DESCRIPTION</code>
+    </UndefinedConstant>
+  </file>
+  <file src="mod_form.php">
+    <MixedOperand occurrences="1">
+      <code>$CFG-&gt;dirroot</code>
+    </MixedOperand>
+    <MixedPropertyFetch occurrences="1">
+      <code>$CFG-&gt;dirroot</code>
+    </MixedPropertyFetch>
+    <UndefinedClass occurrences="1">
+      <code>moodleform_mod</code>
+    </UndefinedClass>
+    <UndefinedGlobalVariable occurrences="1">
+      <code>$CFG</code>
+    </UndefinedGlobalVariable>
+    <UnresolvableInclude occurrences="1">
+      <code>require_once $CFG-&gt;dirroot . '/course/moodleform_mod.php'</code>
+    </UnresolvableInclude>
+  </file>
+  <file src="settings.php">
+    <UndefinedClass occurrences="4">
+      <code>admin_setting_configtext</code>
+      <code>admin_setting_configtext</code>
+      <code>admin_setting_configtext</code>
+      <code>admin_setting_heading</code>
+    </UndefinedClass>
+    <UndefinedDocblockClass occurrences="6">
+      <code>$ADMIN-&gt;fulltree</code>
+      <code>$settings</code>
+      <code>$settings</code>
+      <code>$settings</code>
+    </UndefinedDocblockClass>
+    <UndefinedFunction occurrences="7"/>
+  </file>
+  <file src="src/Container.php">
+    <MissingClosureReturnType occurrences="1">
+      <code>static function () use ($closure, $container) {</code>
+    </MissingClosureReturnType>
+    <MissingReturnType occurrences="1">
+      <code>resolve</code>
+    </MissingReturnType>
+    <MixedArgument occurrences="3">
+      <code>$object</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+    </MixedArgument>
+    <MixedAssignment occurrences="2">
+      <code>$object</code>
+      <code>$service</code>
+    </MixedAssignment>
+    <MixedInferredReturnType occurrences="15">
+      <code>Clock\Clock</code>
+      <code>Matrix\Application\Api</code>
+      <code>Matrix\Application\RoomService</code>
+      <code>Moodle\Domain\CourseRepository</code>
+      <code>Moodle\Domain\GroupRepository</code>
+      <code>Plugin\Application\Configuration</code>
+      <code>Plugin\Application\ModuleService</code>
+      <code>Plugin\Application\NameService</code>
+      <code>Plugin\Application\RoomService</code>
+      <code>Plugin\Domain\MatrixUserIdLoader</code>
+      <code>Plugin\Domain\ModuleRepository</code>
+      <code>Plugin\Domain\RoomRepository</code>
+      <code>Plugin\Domain\UserRepository</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+    </MixedInferredReturnType>
+    <MixedPropertyTypeCoercion occurrences="1">
+      <code>$this-&gt;services</code>
+    </MixedPropertyTypeCoercion>
+    <MixedReturnStatement occurrences="14">
+      <code>$this-&gt;resolve(Clock\Clock::class)</code>
+      <code>$this-&gt;resolve(Matrix\Application\Api::class)</code>
+      <code>$this-&gt;resolve(Matrix\Application\RoomService::class)</code>
+      <code>$this-&gt;resolve(Moodle\Domain\CourseRepository::class)</code>
+      <code>$this-&gt;resolve(Moodle\Domain\GroupRepository::class)</code>
+      <code>$this-&gt;resolve(Plugin\Application\Configuration::class)</code>
+      <code>$this-&gt;resolve(Plugin\Application\ModuleService::class)</code>
+      <code>$this-&gt;resolve(Plugin\Application\NameService::class)</code>
+      <code>$this-&gt;resolve(Plugin\Application\RoomService::class)</code>
+      <code>$this-&gt;resolve(Plugin\Domain\MatrixUserIdLoader::class)</code>
+      <code>$this-&gt;resolve(Plugin\Domain\ModuleRepository::class)</code>
+      <code>$this-&gt;resolve(Plugin\Domain\RoomRepository::class)</code>
+      <code>$this-&gt;resolve(Plugin\Domain\UserRepository::class)</code>
+      <code>$this-&gt;resolve(\moodle_database::class)</code>
+    </MixedReturnStatement>
+    <UndefinedClass occurrences="5">
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+    </UndefinedClass>
+    <UndefinedFunction occurrences="1">
+      <code>get_config('mod_matrix')</code>
+    </UndefinedFunction>
+  </file>
+  <file src="src/Matrix/Application/Api.php">
+    <MissingReturnType occurrences="1">
+      <code>getState</code>
+    </MissingReturnType>
+  </file>
+  <file src="src/Matrix/Application/RoomService.php">
+    <MixedArgument occurrences="1">
+      <code>$powerLevels</code>
+    </MixedArgument>
+    <MixedArrayAssignment occurrences="1">
+      <code>$powerLevels['users']</code>
+    </MixedArrayAssignment>
+    <MixedAssignment occurrences="1">
+      <code>$powerLevels</code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Matrix/Infrastructure/CurlBasedHttpClient.php">
+    <MissingReturnType occurrences="3">
+      <code>get</code>
+      <code>post</code>
+      <code>put</code>
+    </MissingReturnType>
+    <MixedAssignment occurrences="4">
+      <code>$errorCode</code>
+      <code>$errorMessage</code>
+      <code>$httpErrorMessage</code>
+      <code>$httpStatusCode</code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Matrix/Infrastructure/HttpClient.php">
+    <MissingReturnType occurrences="3">
+      <code>get</code>
+      <code>post</code>
+      <code>put</code>
+    </MissingReturnType>
+  </file>
+  <file src="src/Matrix/Infrastructure/HttpClientBasedApi.php">
+    <MissingReturnType occurrences="1">
+      <code>getState</code>
+    </MissingReturnType>
+    <MixedArgument occurrences="3">
+      <code>$event['state_key']</code>
+      <code>$r['room_id']</code>
+      <code>$r['user_id']</code>
+    </MixedArgument>
+    <MixedArrayAccess occurrences="3">
+      <code>$members['chunk']</code>
+      <code>$r['room_id']</code>
+      <code>$r['user_id']</code>
+    </MixedArrayAccess>
+    <MixedAssignment occurrences="3">
+      <code>$members</code>
+      <code>$r</code>
+      <code>$r</code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Moodle/Infrastructure/MoodleFunctionBasedCourseRepository.php">
+    <UndefinedFunction occurrences="1">
+      <code>get_course($courseId-&gt;toInt())</code>
+    </UndefinedFunction>
+  </file>
+  <file src="src/Moodle/Infrastructure/MoodleFunctionBasedGroupRepository.php">
+    <UndefinedFunction occurrences="1">
+      <code>groups_get_group($groupId-&gt;toInt())</code>
+    </UndefinedFunction>
+  </file>
+  <file src="src/Plugin/Infrastructure/Action/EditMatrixUserIdAction.php">
+    <MissingDependency occurrences="1">
+      <code>Plugin\Infrastructure\Form\EditMatrixUserIdForm</code>
+    </MissingDependency>
+    <MixedArgument occurrences="6">
+      <code>$this-&gt;renderer-&gt;footer()</code>
+      <code>$this-&gt;renderer-&gt;footer()</code>
+    </MixedArgument>
+    <MixedAssignment occurrences="3">
+      <code>$data</code>
+      <code>$matrixUserIdForm</code>
+      <code>$message</code>
+    </MixedAssignment>
+    <MixedMethodCall occurrences="5">
+      <code>display</code>
+      <code>display</code>
+      <code>get_data</code>
+      <code>is_submitted</code>
+      <code>is_validated</code>
+    </MixedMethodCall>
+    <MixedPropertyFetch occurrences="1">
+      <code>$data-&gt;{$name}</code>
+    </MixedPropertyFetch>
+    <MixedReturnTypeCoercion occurrences="2">
+      <code>array&lt;int, Matrix\Domain\UserId&gt;</code>
+    </MixedReturnTypeCoercion>
+    <PropertyNotSetInConstructor occurrences="3">
+      <code>$configuration</code>
+      <code>$page</code>
+      <code>$renderer</code>
+    </PropertyNotSetInConstructor>
+    <UndefinedClass occurrences="10">
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>\core_renderer</code>
+      <code>event\user_updated</code>
+      <code>output\notification</code>
+      <code>output\notification</code>
+    </UndefinedClass>
+    <UndefinedFunction occurrences="5"/>
+  </file>
+  <file src="src/Plugin/Infrastructure/Action/ListRoomsAction.php">
+    <MixedArgument occurrences="9">
+      <code>$cm-&gt;get_course()-&gt;shortname</code>
+      <code>$groupVisibleToUser-&gt;id</code>
+      <code>$this-&gt;renderer-&gt;footer()</code>
+      <code>$this-&gt;renderer-&gt;footer()</code>
+      <code>$this-&gt;renderer-&gt;footer()</code>
+    </MixedArgument>
+    <MixedAssignment occurrences="3">
+      <code>$groupVisibleToUser</code>
+      <code>$groupsVisibleToUser</code>
+      <code>$staffUserInCourseContext</code>
+    </MixedAssignment>
+    <MixedPropertyFetch occurrences="2">
+      <code>$groupVisibleToUser-&gt;id</code>
+      <code>$staffUserInCourseContext-&gt;id</code>
+    </MixedPropertyFetch>
+    <PossiblyNullArgument occurrences="1">
+      <code>$matrixUserId</code>
+    </PossiblyNullArgument>
+    <PropertyNotSetInConstructor occurrences="6">
+      <code>$matrixUserIdLoader</code>
+      <code>$moodleGroupRepository</code>
+      <code>$nameService</code>
+      <code>$renderer</code>
+      <code>$roomRepository</code>
+      <code>$roomService</code>
+    </PropertyNotSetInConstructor>
+    <UndefinedClass occurrences="9">
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>$this-&gt;renderer</code>
+      <code>\core_renderer</code>
+      <code>output\notification</code>
+    </UndefinedClass>
+    <UndefinedFunction occurrences="5"/>
+  </file>
+  <file src="src/Plugin/Infrastructure/DatabaseBasedModuleRepository.php">
+    <MixedAssignment occurrences="1">
+      <code>$id</code>
+    </MixedAssignment>
+    <PropertyNotSetInConstructor occurrences="2">
+      <code>$database</code>
+      <code>$moduleNormalizer</code>
+    </PropertyNotSetInConstructor>
+    <UndefinedClass occurrences="6">
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>\moodle_database</code>
+    </UndefinedClass>
+    <UndefinedConstant occurrences="1">
+      <code>IGNORE_MISSING</code>
+    </UndefinedConstant>
+  </file>
+  <file src="src/Plugin/Infrastructure/DatabaseBasedRoomRepository.php">
+    <MixedAssignment occurrences="1">
+      <code>$id</code>
+    </MixedAssignment>
+    <PropertyNotSetInConstructor occurrences="2">
+      <code>$database</code>
+      <code>$roomNormalizer</code>
+    </PropertyNotSetInConstructor>
+    <UndefinedClass occurrences="7">
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>$this-&gt;database</code>
+      <code>\moodle_database</code>
+    </UndefinedClass>
+    <UndefinedConstant occurrences="1">
+      <code>IGNORE_MISSING</code>
+    </UndefinedConstant>
+  </file>
+  <file src="src/Plugin/Infrastructure/Form/EditMatrixUserIdForm.php">
+    <InvalidGlobal occurrences="1">
+      <code>global $CFG;</code>
+    </InvalidGlobal>
+    <MixedOperand occurrences="1">
+      <code>$CFG-&gt;libdir</code>
+    </MixedOperand>
+    <MixedPropertyFetch occurrences="1">
+      <code>$CFG-&gt;libdir</code>
+    </MixedPropertyFetch>
+    <UndefinedClass occurrences="1">
+      <code>\moodleform</code>
+    </UndefinedClass>
+    <UnresolvableInclude occurrences="1">
+      <code>require_once $CFG-&gt;libdir . '/formslib.php'</code>
+    </UnresolvableInclude>
+  </file>
+  <file src="src/Plugin/Infrastructure/FrontController.php">
+    <PropertyNotSetInConstructor occurrences="3">
+      <code>$container</code>
+      <code>$page</code>
+      <code>$renderer</code>
+    </PropertyNotSetInConstructor>
+    <UndefinedClass occurrences="1">
+      <code>\core_renderer</code>
+    </UndefinedClass>
+  </file>
+  <file src="src/Plugin/Infrastructure/Installer.php">
+    <UndefinedClass occurrences="4">
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+    </UndefinedClass>
+  </file>
+  <file src="src/Plugin/Infrastructure/MoodleFunctionBasedMatrixUserIdLoader.php">
+    <UndefinedFunction occurrences="1">
+      <code>profile_load_custom_fields($user)</code>
+    </UndefinedFunction>
+  </file>
+  <file src="src/Plugin/Infrastructure/MoodleFunctionBasedUserRepository.php">
+    <DocblockTypeContradiction occurrences="1">
+      <code>\is_array($users)</code>
+    </DocblockTypeContradiction>
+    <MixedArgument occurrences="2">
+      <code>$user-&gt;id</code>
+      <code>$user-&gt;id</code>
+    </MixedArgument>
+    <MixedReturnTypeCoercion occurrences="4">
+      <code>array</code>
+      <code>array</code>
+    </MixedReturnTypeCoercion>
+    <UndefinedFunction occurrences="1"/>
+  </file>
+  <file src="src/Plugin/Infrastructure/RoomNormalizer.php">
+    <MixedArgument occurrences="1">
+      <code>$normalized-&gt;room_id</code>
+    </MixedArgument>
+  </file>
+  <file src="test/DataProvider/Matrix/Domain/HomeserverProvider.php">
+    <LessSpecificReturnStatement occurrences="2">
+      <code>self::provideDataForValues(self::invalidValues())</code>
+      <code>self::provideDataForValues(self::validValues())</code>
+    </LessSpecificReturnStatement>
+    <MoreSpecificReturnType occurrences="2">
+      <code>\Generator&lt;string, array{0: string}&gt;</code>
+      <code>\Generator&lt;string, array{0: string}&gt;</code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="test/DataProvider/Matrix/Domain/UsernameProvider.php">
+    <LessSpecificReturnStatement occurrences="2">
+      <code>self::provideDataForValues(self::invalidValues())</code>
+      <code>self::provideDataForValues(self::validValues())</code>
+    </LessSpecificReturnStatement>
+    <MoreSpecificReturnType occurrences="2">
+      <code>\Generator&lt;string, array{0: string}&gt;</code>
+      <code>\Generator&lt;string, array{0: string}&gt;</code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="test/DataProvider/Plugin/Domain/ModuleNameProvider.php">
+    <LessSpecificReturnStatement occurrences="2"/>
+    <MoreSpecificReturnType occurrences="2">
+      <code>\Generator&lt;string, array{0: string}&gt;</code>
+      <code>\Generator&lt;string, array{0: string}&gt;</code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="test/DataProvider/Plugin/Domain/ModuleTargetProvider.php">
+    <LessSpecificReturnStatement occurrences="1"/>
+    <MoreSpecificReturnType occurrences="1">
+      <code>\Generator&lt;string, array{0: string}&gt;</code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="test/Unit/Matrix/Infrastructure/HttpClientBasedApiTest.php">
+    <MixedArgumentTypeCoercion occurrences="3">
+      <code>$faker-&gt;words()</code>
+      <code>$faker-&gt;words()</code>
+      <code>$faker-&gt;words()</code>
+    </MixedArgumentTypeCoercion>
+    <MixedAssignment occurrences="1">
+      <code>$actual</code>
+    </MixedAssignment>
+    <PossiblyInvalidArgument occurrences="3">
+      <code>$faker-&gt;words()</code>
+      <code>$faker-&gt;words()</code>
+      <code>$faker-&gt;words()</code>
+    </PossiblyInvalidArgument>
+  </file>
+  <file src="test/Unit/Plugin/Application/RoomServiceTest.php">
+    <MixedArgument occurrences="1">
+      <code>\mb_str_split($value)</code>
+    </MixedArgument>
+  </file>
+  <file src="test/Unit/Plugin/Infrastructure/DatabaseBasedModuleRepositoryTest.php">
+    <InvalidArgument occurrences="7">
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+    </InvalidArgument>
+    <MixedArgument occurrences="7">
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+    </MixedArgument>
+    <UndefinedClass occurrences="7">
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+    </UndefinedClass>
+    <UndefinedConstant occurrences="2">
+      <code>IGNORE_MISSING</code>
+      <code>IGNORE_MISSING</code>
+    </UndefinedConstant>
+  </file>
+  <file src="test/Unit/Plugin/Infrastructure/DatabaseBasedRoomRepositoryTest.php">
+    <InvalidArgument occurrences="8">
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+      <code>$database</code>
+    </InvalidArgument>
+    <MixedArgument occurrences="13">
+      <code>$normalized-&gt;room_id</code>
+      <code>$one-&gt;room_id</code>
+      <code>$one-&gt;room_id</code>
+      <code>$two-&gt;room_id</code>
+      <code>$two-&gt;room_id</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+      <code>\moodle_database::class</code>
+    </MixedArgument>
+    <UndefinedClass occurrences="8">
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+      <code>\moodle_database</code>
+    </UndefinedClass>
+    <UndefinedConstant occurrences="2">
+      <code>IGNORE_MISSING</code>
+      <code>IGNORE_MISSING</code>
+    </UndefinedConstant>
+  </file>
+  <file src="test/Unit/Plugin/Infrastructure/ModuleNormalizerTest.php">
+    <MixedArgument occurrences="3">
+      <code>$target</code>
+      <code>$target</code>
+      <code>$target</code>
+    </MixedArgument>
+    <MixedAssignment occurrences="3">
+      <code>$target</code>
+      <code>$target</code>
+      <code>$target</code>
+    </MixedAssignment>
+  </file>
+  <file src="version.php">
+    <MixedPropertyAssignment occurrences="6">
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+    </MixedPropertyAssignment>
+    <UndefinedGlobalVariable occurrences="6">
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+      <code>$plugin</code>
+    </UndefinedGlobalVariable>
+  </file>
+  <file src="view.php">
+    <InvalidScope occurrences="1">
+      <code>$this</code>
+    </InvalidScope>
+    <MissingFile occurrences="1">
+      <code>require '../../config.php'</code>
+    </MissingFile>
+    <MixedArgument occurrences="5">
+      <code>$OUTPUT-&gt;footer()</code>
+      <code>$OUTPUT-&gt;header()</code>
+      <code>$OUTPUT-&gt;header()</code>
+      <code>$course-&gt;fullname</code>
+    </MixedArgument>
+    <MixedPropertyFetch occurrences="1">
+      <code>$course-&gt;fullname</code>
+    </MixedPropertyFetch>
+    <UndefinedConstant occurrences="1">
+      <code>PARAM_INT</code>
+    </UndefinedConstant>
+    <UndefinedDocblockClass occurrences="5">
+      <code>$OUTPUT</code>
+      <code>$OUTPUT</code>
+      <code>$OUTPUT</code>
+      <code>echo $OUTPUT-&gt;header();</code>
+      <code>echo $OUTPUT-&gt;header();</code>
+    </UndefinedDocblockClass>
+    <UndefinedFunction occurrences="2"/>
+    <UnnecessaryVarAnnotation occurrences="1">
+      <code>core_renderer</code>
+    </UnnecessaryVarAnnotation>
+  </file>
+</files>

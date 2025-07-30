@@ -1,0 +1,54 @@
+version: "3.7"
+
+services:
+  moodle_mariadb:
+    build: "mariadb/"
+    environment:
+      MYSQL_DATABASE: "moodle"
+      MYSQL_ROOT_PASSWORD: "root"
+    networks:
+      - "moodle"
+    ports:
+      - "3306:3306"
+    volumes:
+      - "../.data/mariadb/:/var/lib/mysql/"
+
+  moodle_nginx:
+    build: "nginx/"
+    depends_on:
+      - "moodle_php"
+    networks:
+      - "moodle"
+    ports:
+      - "80:80"
+    volumes:
+      - "../vendor/moodle/moodle/:/var/www/html/"
+
+  moodle_php:
+    build: "php/"
+    depends_on:
+      - "moodle_mariadb"
+    networks:
+      - "moodle"
+    volumes:
+      # directories
+      - "../.data/moodle/:/var/www/moodledata/"
+      - "../backup/:/var/www/html/mod/matrix/backup/"
+      - "../classes/:/var/www/html/mod/matrix/classes/"
+      - "../db/:/var/www/html/mod/matrix/db/"
+      - "../lang/:/var/www/html/mod/matrix/lang/"
+      - "../pix/:/var/www/html/mod/matrix/pix/"
+      - "../src/:/var/www/html/mod/matrix/src/"
+      - "../vendor/:/var/www/html/mod/matrix/vendor/"
+      - "../vendor/moodle/moodle/:/var/www/html/"
+      # files
+      - "../composer.json/:/var/www/html/mod/matrix/composer.json"
+      - "../lib.php/:/var/www/html/mod/matrix/lib.php"
+      - "../mod_form.php/:/var/www/html/mod/matrix/mod_form.php"
+      - "../settings.php/:/var/www/html/mod/matrix/settings.php"
+      - "../version.php/:/var/www/html/mod/matrix/version.php"
+      - "../view.php/:/var/www/html/mod/matrix/view.php"
+
+networks:
+  moodle:
+    driver: "bridge"
