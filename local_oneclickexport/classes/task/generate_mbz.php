@@ -1,242 +1,226 @@
 <?php
+
 namespace local_oneclickexport\task;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/backup/util/includes/backup_includes.php');
+require_once($CFG->dirroot . '/local/oneclickexport/backup_service.php');
+require_once($CFG->dirroot . '/local/oneclickexport/classes/logging.php');
 
-class generate_mbz extends \core\task\adhoc_task {
-    
-    public function execute() {
-        global $CFG, $DB;
-        
-        // Get and validate custom data
+
+/**
+ * Task for generating a course export in MBZ format. This task is queued
+ * for each course in a bulk export operation.
+ *
+ * @package    local_oneclickexport
+ * @category   task
+ * @copyright  2025 Ahmed Belhaj <ahmed.belhaj@campusna.com>
+ */
+class generate_mbz extends \core\task\adhoc_task
+{
+
+    public function execute()
+    {
+        global $DB, $USER;
+
         $data = $this->get_custom_data();
-        
-        if (empty($data->userid) || empty($data->courseid)) {
-            throw new \moodle_exception('invalidtaskdata', 'local_oneclickexport');
+
+        $required = ['userid', 'bulklogid', 'courseid', 'tempdir', 'settings'];
+        foreach ($required as $prop) {
+            if (!property_exists($data, $prop)) {
+                throw new \moodle_exception('missingdata', 'local_oneclickexport', '', $prop);
+            }
         }
 
-        // Extract and sanitize task parameters
-        $userid = (int)$data->userid;
-        $courseid = (int)$data->courseid;
-        $settings = isset($data->settings) ? (array)$data->settings : [];
-        $isbulk = !empty($data->bulklogid);
-        $zipfile = $data->zipfile ?? null;
-        $tempdir = $data->tempdir ?? null;
+        $courseid = $data->courseid;
+        $userid = $data->userid;
+        $bulklogid = $data->bulklogid;
+        $tempdir = $data->tempdir;
+        $settings = (array)$data->settings;
 
         try {
-            // Create backup controller
-            $bc = new \backup_controller(
-                \backup::TYPE_1COURSE,
-                $courseid,
-                \backup::FORMAT_MOODLE,
-                \backup::INTERACTIVE_NO,
-                \backup::MODE_GENERAL,
-                $userid
-            );
-
-            // Apply backup settings
-            $this->apply_backup_settings($bc, $settings);
-
-            // Execute backup
-            $bc->execute_plan();
-            $results = $bc->get_results();
-            
-            if (empty($results['backup_destination']) || !($results['backup_destination'] instanceof \stored_file)) {
-                throw new \moodle_exception('backupfailed', 'local_oneclickexport');
+            if ($courseid == 0) {
+                $this->finalize_export($data);
+                return;
             }
 
-            $file = $results['backup_destination'];
-            
-            // Process the backup file
-            if ($isbulk && $zipfile && $tempdir) {
-                $this->process_bulk_export($file, $zipfile, $tempdir, $data);
-                
-                // Update progress
-                $this->update_progress($data);
-                
-                // Check if this is the last course in the bulk export
-                if ($data->current >= $data->total) {
-                    $this->finalize_bulk_export($zipfile, $tempdir, $data);
-                }
-            } else {
-                $this->process_single_export($file, $data);
+            $backup_settings = [];
+            if (!empty($settings['users'])) {
+                $backup_settings['users'] = 1;
+            }
+            if (!empty($settings['comments'])) {
+                $backup_settings['comments'] = 1;
+            }
+            if (!empty($settings['logs'])) {
+                $backup_settings['logs'] = 1;
+            }
+            if (!empty($settings['calendarevents'])) {
+                $backup_settings['calendarevents'] = 1;
+            }
+            if (!empty($settings['userscompletion'])) {
+                $backup_settings['userscompletion'] = 1;
+            }
+            if (!empty($settings['roleassignments'])) {
+                $backup_settings['roleassignments'] = 1;
             }
 
-            $bc->destroy();
-            $this->handle_export_success($data);
-            
+            $backupfile = local_oneclickexport_backup_course($courseid, $userid, $backup_settings, $bulklogid);
+
+            $DB->set_field('local_oneclickexport_log', 'timemodified', time(), ['id' => $bulklogid]);
+
+            $this->check_if_last_task($bulklogid, $tempdir, $userid);
         } catch (\Exception $e) {
-            if (isset($bc) && $bc instanceof \backup_controller) {
-                $bc->destroy();
-            }
-            $this->handle_export_failure($e, $data);
+            \local_oneclickexport_logging::update_bulk_export_status($bulklogid);
             throw $e;
         }
     }
 
-    protected function apply_backup_settings(\backup_controller $bc, array $settings) {
-        $plan = $bc->get_plan();
-        
-        foreach ($settings as $name => $value) {
-            if ($plan->setting_exists($name)) {
-                $setting = $plan->get_setting($name);
-                if ($setting->get_status() == \base_setting::NOT_LOCKED) {
-                    $setting->set_value($value);
-                }
-            }
-        }
+protected function finalize_export($data) {
+    global $DB, $CFG;
+
+    $fs = get_file_storage();
+    $context = \context_system::instance();
+
+    if (!is_dir($data->tempdir) || !is_writable($data->tempdir)) {
+        throw new \moodle_exception('tempdirnotwritable', 'local_oneclickexport', '', $data->tempdir);
     }
 
-    protected function process_bulk_export(\stored_file $file, string $zipfile, string $tempdir, \stdClass $data) {
-        // More robust temp directory validation
-        $tempdir = realpath($tempdir);
-        if ($tempdir === false || !is_dir($tempdir) || !is_writable($tempdir)) {
-            throw new \moodle_exception('invalidtempdir', 'local_oneclickexport', '', $tempdir);
+    $files = $fs->get_area_files(
+        $context->id,
+        'local_oneclickexport',
+        'backup',
+        $data->bulklogid,
+        'timemodified DESC',
+        false
+    );
+
+    if (empty($files)) {
+        throw new \moodle_exception('nobackupfiles', 'local_oneclickexport');
+    }
+
+    $zipname = 'bulk_export_' . date('Ymd_His') . '.zip';
+    $tempzip = $data->tempdir . '/' . $zipname;
+
+    $zip = new \ZipArchive();
+    $tempfiles = [];
+    $success = false;
+
+    try {
+        if ($zip->open($tempzip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            throw new \moodle_exception('cannotcreatezip', 'local_oneclickexport');
         }
 
-        // Verify zip file path is within the temp directory for security
-        $zipfile = realpath($zipfile);
-        if ($zipfile === false || strpos($zipfile, $tempdir) !== 0) {
-            throw new \moodle_exception('invalidzippath', 'local_oneclickexport');
-        }
-
-        $zip = new \ZipArchive();
-        $res = $zip->open($zipfile, \ZipArchive::CREATE);
-        
-        if ($res !== true) {
-            throw new \moodle_exception('cannotopenzip', 'local_oneclickexport', '', $res);
-        }
-
-        try {
-            $tempfile = $file->copy_content_to_temp();
-            if ($tempfile === false) {
-                throw new \moodle_exception('cannotcreatetempfile', 'local_oneclickexport');
+        foreach ($files as $file) {
+            $filename = $file->get_filename();
+            $counter = 1;
+            
+            while ($zip->locateName($filename) !== false) {
+                $pathinfo = pathinfo($file->get_filename());
+                $filename = $pathinfo['filename'] . '_' . $counter . '.' . $pathinfo['extension'];
+                $counter++;
             }
 
-            $filename = 'course_' . $data->courseid . '_' . date('Ymd-His') . '.mbz';
-            
-            if (!$zip->addFile($tempfile, $filename)) {
+            $temppath = $file->copy_content_to_temp();
+            $tempfiles[] = $temppath;
+
+            if (!$zip->addFile($temppath, $filename)) {
                 throw new \moodle_exception('cannotaddtozip', 'local_oneclickexport');
             }
-
-            if (!$zip->close()) {
-                throw new \moodle_exception('cannotclosezip', 'local_oneclickexport');
-            }
-        } finally {
-            // Ensure cleanup happens even if an exception occurs
-            if (isset($tempfile)) {
-                @unlink($tempfile);
-            }
-            $file->delete();
-        }
-    }
-
-    protected function update_progress(\stdClass $data) {
-        global $DB;
-        
-        if (!empty($data->bulklogid)) {
-            $progress = round(($data->current / $data->total) * 100);
-            $DB->set_field('local_oneclickexport_log', 'progress', $progress, ['id' => $data->bulklogid]);
-            $DB->set_field('local_oneclickexport_log', 'timemodified', time(), ['id' => $data->bulklogid]);
-        }
-    }
-
-    protected function finalize_bulk_export(string $zipfile, string $tempdir, \stdClass $data) {
-        global $DB, $USER;
-        
-        $zipfile = realpath($zipfile);
-        if ($zipfile === false || !file_exists($zipfile)) {
-            throw new \moodle_exception('zipfilenotfound', 'local_oneclickexport');
         }
 
-        // Store the final ZIP file
-        $context = \context_user::instance($USER->id);
-        $fs = get_file_storage();
-        
-        $filerecord = [
+        if (!$zip->close()) {
+            throw new \moodle_exception('cannotclosezip', 'local_oneclickexport');
+        }
+        $zip = null; 
+
+        if (!file_exists($tempzip) || filesize($tempzip) == 0) {
+            throw new \moodle_exception('emptyzipcreated', 'local_oneclickexport');
+        }
+
+        $file_record = [
             'contextid' => $context->id,
             'component' => 'local_oneclickexport',
-            'filearea' => 'bulkexports',
+            'filearea' => 'bulk',
             'itemid' => $data->bulklogid,
             'filepath' => '/',
-            'filename' => basename($zipfile)
+            'filename' => $zipname,
+            'userid' => $data->userid
         ];
-        
-        // Delete existing file if any
-        $fs->delete_area_files(
-            $filerecord['contextid'],
-            $filerecord['component'],
-            $filerecord['filearea'],
-            $filerecord['itemid']
-        );
-        
-        $file = $fs->create_file_from_pathname($filerecord, $zipfile);
-        
-        // Update the log record
+
+        $storedfile = $fs->create_file_from_pathname($file_record, $tempzip);
+
         $DB->update_record('local_oneclickexport_log', [
             'id' => $data->bulklogid,
-            'filesize' => $file->get_filesize(),
-            'fileid' => $file->get_id(),
-            'status' => 'completed',
-            'progress' => 100,
-            'timemodified' => time()
+            'filesize' => $storedfile->get_filesize(),
+            'fileid' => $storedfile->get_id(),
+            'timemodified' => time(),
+            'status' => 'completed'
         ]);
-        
-        // Cleanup temporary files
-        @unlink($zipfile);
-        @rmdir($tempdir);
-    }
 
-    protected function handle_export_success(\stdClass $data) {
-        global $DB;
-        
-        if (empty($data->bulklogid)) {
-            // For single exports, log the success
-            $DB->insert_record('local_oneclickexport_log', [
-                'courseid' => $data->courseid,
-                'userid' => $data->userid,
-                'timecreated' => time(),
-                'filesize' => 0, // Will be updated by process_single_export
-                'status' => 'completed',
-                'timemodified' => time()
-            ]);
+        $success = true;
+    } finally {
+        if (isset($zip) && $zip instanceof \ZipArchive) {
+            @$zip->close();
         }
-    }
 
-    protected function handle_export_failure(\Exception $exception, \stdClass $data) {
-        global $DB;
-        
-        if (!empty($data->bulklogid)) {
-            // Cleanup any partial files
-            if (!empty($data->zipfile)) {
-                @unlink($data->zipfile);
+        foreach ($tempfiles as $temppath) {
+            if (file_exists($temppath)) {
+                @unlink($temppath);
             }
-            if (!empty($data->tempdir)) {
-                @rmdir($data->tempdir);
-            }
+        }
+
+        if (file_exists($tempzip) && !$success) {
+            @unlink($tempzip);
+        }
+
+        remove_dir($data->tempdir);
+    }
+}
+protected function check_if_last_task($bulklogid, $tempdir, $userid) {
+    global $DB;
+
+    $pending = $DB->count_records('local_oneclickexport_log_details', [
+        'logid' => $bulklogid,
+        'status' => 'pending'
+    ]);
+
+    $processing = $DB->count_records('local_oneclickexport_log_details', [
+        'logid' => $bulklogid,
+        'status' => 'processing'
+    ]);
+
+    $sql = "SELECT COUNT(*) 
+            FROM {task_adhoc} 
+            WHERE classname = :classname
+            AND " . $DB->sql_compare_text('customdata') . " LIKE :bulklogid
+            AND " . $DB->sql_compare_text('customdata') . " NOT LIKE :finaltask";
+
+    $params = [
+        'classname' => '\local_oneclickexport\task\generate_mbz',
+        'bulklogid' => '%"bulklogid":' . $bulklogid . '%',
+        'finaltask' => '%"courseid":0%'
+    ];
+
+    $remaining_tasks = $DB->count_records_sql($sql, $params);
+
+    if ($pending == 0 && $processing == 0 && $remaining_tasks <= 1) {
+        sleep(2);
+
+        $final_check = $DB->count_records_sql($sql, $params);
+        if ($final_check <= 1) {
+            $finaltask = new \local_oneclickexport\task\generate_mbz();
+            $finaltask->set_custom_data((object)[
+                'userid' => $userid,
+                'bulklogid' => $bulklogid,
+                'courseid' => 0,
+                'tempdir' => $tempdir,
+                'settings' => (object)[]
+            ]);
             
-            $DB->update_record('local_oneclickexport_log', [
-                'id' => $data->bulklogid,
-                'status' => 'failed',
-                'error' => $exception->getMessage(),
-                'timemodified' => time()
-            ]);
-        } else {
-            // Log failure for single export
-            $DB->insert_record('local_oneclickexport_log', [
-                'courseid' => $data->courseid,
-                'userid' => $data->userid,
-                'timecreated' => time(),
-                'filesize' => 0,
-                'status' => 'failed',
-                'error' => $exception->getMessage(),
-                'fileid' => null,
-                'timemodified' => time()
-            ]);
+            \core\task\manager::queue_adhoc_task($finaltask, true); // true = high priority
+            
+            \local_oneclickexport_logging::update_bulk_export_status($bulklogid);
         }
-        
-        mtrace("Export failed for course {$data->courseid}: " . $exception->getMessage());
     }
+}
 }

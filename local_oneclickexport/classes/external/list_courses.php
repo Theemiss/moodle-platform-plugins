@@ -1,53 +1,71 @@
 <?php
+
 namespace local_oneclickexport\external;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($GLOBALS['CFG']->libdir . '/externallib.php');
+require_once($CFG->libdir . '/externallib.php');
 
-use external_function_parameters;
-use external_multiple_structure;
-use external_single_structure;
-use external_value;
-use external_api;
-use context_system;
-use core_course_category;
-use core_course_list_element;
+/**
+ * External API for listing courses. This class provides methods to retrieve
+ * a list of courses based on search criteria and user permissions.
+ *
+ * @package    local_oneclickexport
+ * @category   external
+ * @copyright  2025 Ahmed Belhaj <ahmed.belhaj@campusna.com>
+ */
 
-class list_courses extends external_api {
-
-    public static function execute_parameters() {
-        return new external_function_parameters([]);
+class list_courses extends \external_api
+{
+    public static function execute_parameters()
+    {
+        return new \external_function_parameters([
+            'search' => new \external_value(PARAM_TEXT, 'Search term', VALUE_DEFAULT, ''),
+            'limit' => new \external_value(PARAM_INT, 'Number of results to return', VALUE_DEFAULT, 20),
+            'offset' => new \external_value(PARAM_INT, 'Result offset', VALUE_DEFAULT, 0)
+        ]);
     }
+    public static function execute($search = '', $limit = 20, $offset = 0)
+    {
+        global $DB, $USER;
 
-    public static function execute() {
-        global $USER;
+        $params = self::validate_parameters(self::execute_parameters(), [
+            'search' => $search,
+            'limit' => $limit,
+            'offset' => $offset
+        ]);
 
-        self::validate_context(context_system::instance());
+        $courses = \core_course_category::search_courses([
+            'search' => $params['search'],
+            'mycourses' => false,
+            'limit' => $params['limit'],
+            'offset' => $params['offset']
+        ]);
 
-        $courses = enrol_get_users_courses($USER->id, true, 'id,fullname,shortname,visible');
-        $results = [];
-
+        $result = [];
         foreach ($courses as $course) {
-            if (!$course->visible) {
-                continue;
+            $context = \context_course::instance($course->id);
+            if (has_capability('local/oneclickexport:export', $context)) {
+                $result[] = [
+                    'id' => $course->id,
+                    'fullname' => $course->fullname,
+                    'shortname' => $course->shortname,
+                    'visible' => $course->visible
+                ];
             }
-            $results[] = [
-                'id' => $course->id,
-                'shortname' => $course->shortname,
-                'fullname' => $course->fullname,
-            ];
         }
 
-        return $results;
+        return $result;
     }
 
-    public static function execute_returns() {
-        return new external_multiple_structure(
-            new external_single_structure([
-                'id' => new external_value(PARAM_INT, 'Course ID'),
-                'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
-                'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
+    public static function execute_returns()
+    {
+        return new \external_multiple_structure(
+            new \external_single_structure([
+                'id' => new \external_value(PARAM_INT, 'Course ID'),
+                'fullname' => new \external_value(PARAM_TEXT, 'Course full name'),
+                'shortname' => new \external_value(PARAM_TEXT, 'Course short name'),
+                'visible' => new \external_value(PARAM_BOOL, 'Course visibility')
             ])
         );
     }

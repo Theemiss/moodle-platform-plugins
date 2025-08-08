@@ -23,7 +23,6 @@
 
 
 # Adding Button To Course Index Page
-To add the export button to the course index page, you can modify the `local_oneclickexport/lib.php` file. This will ensure the button appears on the course index page, allowing users to export courses directly from there.
 
 * Code Snippet for Button Course Cards or anywhere in your template:
 

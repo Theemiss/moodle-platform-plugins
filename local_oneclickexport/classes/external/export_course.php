@@ -4,141 +4,59 @@ namespace local_oneclickexport\external;
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/externallib.php');
-require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
-require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
+require_once($CFG->dirroot . '/local/oneclickexport/backup_service.php');
+require_once($CFG->dirroot . '/local/oneclickexport/classes/logging.php');
 
-use external_function_parameters;
-use external_value;
-use external_single_structure;
-use external_api;
-use context_course;
-use backup_controller;
-use backup;
-use moodle_exception;
-use stored_file;
-use file_storage;
-use context_user;
-use moodle_url;
-use context_system;
-
-class export_course extends external_api {
-
-    public static function execute_parameters() {
-        return new external_function_parameters([
-            'courseid' => new external_value(PARAM_INT, 'ID of the course to export'),
+/**
+ * External API for exporting a single course. This class handles the export
+ * process and returns the result.
+ *
+ * @package    local_oneclickexport
+ * @category   external
+ * @copyright  2025 Ahmed Belhaj <ahmed.belhaj@campusna.com>
+ */
+class export_course extends \external_api
+{
+    public static function execute_parameters()
+    {
+        return new \external_function_parameters([
+            'courseid' => new \external_value(PARAM_INT, 'Course ID to export')
         ]);
     }
 
-    public static function execute($courseid) {
-        global $CFG, $DB;
+    public static function execute($courseid)
+    {
+        global $USER;
 
-        // Validate parameters
-        $params = self::validate_parameters(self::execute_parameters(), ['courseid' => $courseid]);
-        $courseid = $params['courseid'];
+        $params = self::validate_parameters(self::execute_parameters(), [
+            'courseid' => $courseid
+        ]);
 
-        // Get course and validate context
-        $course = get_course($courseid);
-        $context = context_course::instance($courseid);
+        $context = \context_course::instance($params['courseid']);
         self::validate_context($context);
-        require_capability('moodle/backup:backupcourse', $context);
+        require_capability('local/oneclickexport:export', $context);
 
-        // Set up resource limits
-        raise_memory_limit(MEMORY_HUGE);
-        @set_time_limit(0);
+        $logid = \local_oneclickexport_logging::log_export_start($params['courseid'], $USER->id, 'single');
 
-        $bc = null;
-        $fs = get_file_storage();
-        $systemcontext = context_system::instance();
+        $task = new \local_oneclickexport\task\generate_single_mbz();
+        $task->set_custom_data([
+            'courseid' => $params['courseid'],
+            'userid' => $USER->id,
+            'logid' => $logid
+        ]);
+        \core\task\manager::queue_adhoc_task($task);
 
-        try {
-            // Initialize backup controller
-            $bc = new backup_controller(
-                backup::TYPE_1COURSE,
-                $courseid,
-                backup::FORMAT_MOODLE,
-                backup::INTERACTIVE_NO,
-                backup::MODE_GENERAL,
-                2 // Admin user
-            );
-
-            // Configure backup settings
-            $bc->get_plan()->get_setting('users')->set_value(0);
-            $bc->get_plan()->get_setting('anonymize')->set_value(0);
-            $bc->get_plan()->get_setting('activities')->set_value(1);
-            $bc->get_plan()->get_setting('blocks')->set_value(1);
-            $bc->get_plan()->get_setting('filters')->set_value(1);
-
-            // Set filename
-            $filename = 'backup_' . $course->shortname . '_' . date('Ymd-His') . '.mbz';
-            $filename = clean_filename($filename);
-            $bc->get_plan()->get_setting('filename')->set_value($filename);
-
-            // Execute backup
-            $bc->execute_plan();
-            $results = $bc->get_results();
-            
-            if (!isset($results['backup_destination']) || !$results['backup_destination'] instanceof stored_file) {
-                throw new moodle_exception('backupfailed', 'local_oneclickexport');
-            }
-
-            $file = $results['backup_destination'];
-
-            // Store file in public backup area
-            $filerecord = [
-                'contextid' => $systemcontext->id,
-                'component' => 'local_oneclickexport',
-                'filearea' => 'public_backups',
-                'itemid' => 0,
-                'filepath' => '/',
-                'filename' => $filename,
-            ];
-
-            // Delete any existing file with same name
-            $fs->delete_area_files($systemcontext->id, 'local_oneclickexport', 'public_backups');
-
-            // Create file from stored file
-            $newfile = $fs->create_file_from_storedfile($filerecord, $file);
-            $file->delete();
-
-            // Verify the file was created
-            if (!$fs->file_exists($systemcontext->id, 'local_oneclickexport', 'public_backups', 0, '/', $filename)) {
-                throw new moodle_exception('filenotcreated', 'local_oneclickexport');
-            }
-
-            // Generate direct download URL
-            $url = moodle_url::make_pluginfile_url(
-                $newfile->get_contextid(),
-                $newfile->get_component(),
-                $newfile->get_filearea(),
-                $newfile->get_itemid(),
-                $newfile->get_filepath(),
-                $newfile->get_filename(),
-                true
-            );
-
-            return [
-                'status' => 'success',
-                'message' => get_string('backupcreated', 'local_oneclickexport'),
-                'filename' => $filename,
-                'downloadurl' => $url->out(false),
-                'filesize' => $newfile->get_filesize(),
-            ];
-
-        } catch (Exception $e) {
-            if ($bc) {
-                $bc->destroy();
-            }
-            throw new moodle_exception('backuperror', 'local_oneclickexport', '', $e->getMessage());
-        }
+        return [
+            'success' => true,
+            'logid' => $logid
+        ];
     }
 
-    public static function execute_returns() {
-        return new external_single_structure([
-            'status' => new external_value(PARAM_TEXT, 'Status of the operation'),
-            'message' => new external_value(PARAM_TEXT, 'Human-readable result'),
-            'filename' => new external_value(PARAM_TEXT, 'Name of the backup file'),
-            'downloadurl' => new external_value(PARAM_URL, 'Public download link'),
-            'filesize' => new external_value(PARAM_INT, 'Size of the backup file in bytes'),
+    public static function execute_returns()
+    {
+        return new \external_single_structure([
+            'success' => new \external_value(PARAM_BOOL, 'True if export was queued successfully'),
+            'logid' => new \external_value(PARAM_INT, 'Export log ID')
         ]);
     }
 }

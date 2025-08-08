@@ -7,16 +7,43 @@
         <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="ID of exported course"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="ID of user who performed export"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="Timestamp when export started"/>
-        <FIELD NAME="filesize" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="Size of exported file in bytes"/>
+        <FIELD NAME="filesize" TYPE="int" LENGTH="10" UNSIGNED="true" COMMENT="Size of exported file in bytes"/>
         <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="completed" COMMENT="Export status"/>
         <FIELD NAME="fileid" TYPE="int" LENGTH="10" UNSIGNED="true" COMMENT="File storage API ID"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" COMMENT="Modification timestamp"/>
+        <FIELD NAME="exporttype" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="single" COMMENT="Type of export: single or bulk"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="Primary key"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="course_user" UNIQUE="false" FIELDS="courseid, userid" COMMENT="Index for course-user lookup"/>
+        <INDEX NAME="timecreated" UNIQUE="false" FIELDS="timecreated" COMMENT="Index for time-based queries"/>
+        <INDEX NAME="exporttype" UNIQUE="false" FIELDS="exporttype" COMMENT="Index for export type queries"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oneclickexport_log_details" COMMENT="Stores detailed information about courses in bulk exports">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" COMMENT="Auto-incremented ID"/>
+        <FIELD NAME="logid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="Reference to main log entry"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="ID of the course in this export"/>
+        <FIELD NAME="coursename" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Full name of the course"/>
+        <FIELD NAME="courseshortname" TYPE="char" LENGTH="100" NOTNULL="true" COMMENT="Short name of the course"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" COMMENT="Status of this course export"/>
+        <FIELD NAME="filesize" TYPE="int" LENGTH="10" UNSIGNED="true" COMMENT="Size of this course backup file in bytes"/>
+        <FIELD NAME="fileid" TYPE="int" LENGTH="10" UNSIGNED="true" COMMENT="File storage API ID for this course"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="Timestamp when this course export started"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" COMMENT="Modification timestamp"/>
+        <FIELD NAME="error" TYPE="text" NOTNULL="false" COMMENT="Error message if export failed"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="Primary key"/>
+        <KEY NAME="logid" TYPE="foreign" FIELDS="logid" REFTABLE="local_oneclickexport_log" REFFIELDS="id" COMMENT="Foreign key to main log"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="logid" UNIQUE="false" FIELDS="logid" COMMENT="Index for log lookup"/>
+        <INDEX NAME="courseid" UNIQUE="false" FIELDS="courseid" COMMENT="Index for course lookup"/>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status" COMMENT="Index for status queries"/>
         <INDEX NAME="timecreated" UNIQUE="false" FIELDS="timecreated" COMMENT="Index for time-based queries"/>
       </INDEXES>
     </TABLE>

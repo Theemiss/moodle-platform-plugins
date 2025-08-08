@@ -1,13 +1,22 @@
 <?php
-// Verify Moodle environment
-require_once(__DIR__.'/../../config.php');
-require_once($CFG->libdir.'/adminlib.php');
 
-// Load required classes
-require_once($CFG->dirroot.'/local/oneclickexport/classes/form/bulk_export_form.php');
-require_once($CFG->dirroot.'/local/oneclickexport/classes/task/generate_mbz.php');
+/**
+ * Bulk export page for the OneClickExport plugin.
+ *
+ * This page allows users to select multiple courses and initiate a bulk export operation.
+ *
+ * @package    local_oneclickexport
+ * @copyright  2025 Ahmed Belhaj <ahmed.belhaj@campusna.com>
+ */
 
-// Set up page
+require_once(__DIR__ . '/../../config.php');
+require_once($CFG->libdir . '/adminlib.php');
+
+require_once($CFG->dirroot . '/local/oneclickexport/classes/form/bulk_export_form.php');
+require_once($CFG->dirroot . '/local/oneclickexport/classes/task/generate_mbz.php');
+require_once($CFG->dirroot . '/local/oneclickexport/classes/logging.php');
+require_once($CFG->dirroot . '/local/oneclickexport/backup_service.php');
+
 $context = context_system::instance();
 $PAGE->set_context($context);
 require_login();
@@ -18,16 +27,13 @@ $PAGE->set_title(get_string('bulkexport', 'local_oneclickexport'));
 $PAGE->set_heading(get_string('bulkexport', 'local_oneclickexport'));
 $PAGE->set_pagelayout('admin');
 
-// Initialize form
 $form = new local_oneclickexport_bulk_export_form();
 
 if ($form->is_cancelled()) {
-    // Handle form cancellation
     redirect(new moodle_url('/'));
 } else if ($data = $form->get_data()) {
-    // Process form submission
     $total = count($data->courses);
-    
+
     if ($total === 0) {
         redirect(
             $PAGE->url,
@@ -37,69 +43,40 @@ if ($form->is_cancelled()) {
         );
     }
 
-    // Create temporary working directory
-    $tempdir = make_temp_directory('bulkexport_' . time());
+    $unique = 'export_' . $USER->id . '_' . time();
+    $tempdir = make_backup_temp_directory($unique, true);
+    
     if (!is_dir($tempdir) || !is_writable($tempdir)) {
-        throw new moodle_exception('cannotcreatetempdir', 'local_oneclickexport');
+        throw new moodle_exception('tempdirnotwritable', 'local_oneclickexport', '', $tempdir);
     }
 
-    // Create unique filename for the final ZIP
-    $zipname = 'course_backups_' . date('Ymd_His') . '.zip';
-    $tempzip = $tempdir . '/' . $zipname;
+    $bulklogid = local_oneclickexport_logging::log_bulk_export_start($USER->id, $data->courses);
 
-    // Create initial ZIP archive
-    $zip = new ZipArchive();
-    if ($zip->open($tempzip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-        throw new moodle_exception('cannotcreatezip', 'local_oneclickexport');
-    }
-    $zip->close();
+    $backup_settings = local_oneclickexport_get_backup_settings($data);
 
-    // Create a parent log entry for the bulk export
-    $bulklogid = $DB->insert_record('local_oneclickexport_log', [
-        'courseid' => 0, // 0 indicates bulk export
-        'userid' => $USER->id,
-        'timecreated' => time(),
-        'filesize' => 0,
-        'status' => 'processing',
-        'fileid' => null,
-        'timemodified' => time(),
-        'progress' => 0,
-        'total' => $total
-    ]);
-
-    // Prepare common task data
-    $common_data = [
+    $common_data = (object)[
         'userid' => $USER->id,
         'bulklogid' => $bulklogid,
-        'settings' => [
-            'users' => !empty($data->includeusers),
-            'comments' => !empty($data->includecomments),
-            'logs' => !empty($data->includelogs)
-        ],
-        'zipfile' => $tempzip,
         'tempdir' => $tempdir,
-        'total' => $total
+        'settings' => (object)$backup_settings
     ];
 
-    // Queue tasks for each course
-    foreach ($data->courses as $index => $courseid) {
+    foreach ($data->courses as $courseid) {
         $task = new \local_oneclickexport\task\generate_mbz();
-        $task->set_custom_data(array_merge($common_data, [
-            'courseid' => $courseid,
-            'current' => $index + 1
-        ]));
+        $custom_data = clone $common_data;
+        $custom_data->courseid = $courseid;
+        $task->set_custom_data($custom_data);
         \core\task\manager::queue_adhoc_task($task);
     }
 
     redirect(
-        new moodle_url('/local/oneclickexport/admin_report.php'), 
+        new moodle_url('/local/oneclickexport/admin_report.php'),
         get_string('bulkexportstarted', 'local_oneclickexport', $total),
         null,
         \core\output\notification::NOTIFY_SUCCESS
     );
 }
 
-// Display page
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('bulkexport', 'local_oneclickexport'));
 $form->display();

@@ -1,93 +1,68 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-
-
-function local_oneclickexport_get_renderer_override() {
-    return [
-        'core_course' => 'local_oneclickexport\\output\\core_course_renderer'
-    ];
-}
-
-function local_oneclickexport_extend_navigation_course($navigation, $course, $context) {
-    if (get_config('local_oneclickexport', 'showinnavigation') &&
-        has_capability('local/oneclickexport:export', $context)) {
-        global $PAGE, $OUTPUT;
-
-        $url = new moodle_url('/local/oneclickexport/export.php', ['id' => $course->id]);
-        if ($PAGE->pagetype == 'course-index') {
-            $button = $OUTPUT->single_button($url, get_string('exportcourse', 'local_oneclickexport'));
-            $PAGE->set_button($button . $PAGE->button);
-
-        }
-
-        $navigation->add(
-            get_string('exportcourse', 'local_oneclickexport'),
-            $url,
-            navigation_node::TYPE_SETTING,
-            null,
-            'oneclickexport',
-            new pix_icon('i/export', '')
-        );
-    }
-}
-
-function local_oneclickexport_course_card_actions(course_in_list $course): ?renderable {
-    global $PAGE;
-
-    $context = context_course::instance($course->id);
-
-    // Optional: capability check or siteadmin check
-    if (!has_capability('local/oneclickexport:export', $context)) {
-        return null;
-    }
-
-    // Renderer instance
-    $renderer = $PAGE->get_renderer('local_oneclickexport');
-    $url = new moodle_url('/local/oneclickexport/export.php', ['id' => $course->id]);
-
-    // Render a styled button or link
-    $button = html_writer::link($url, get_string('exportcourse', 'local_oneclickexport'), [
-        'class' => 'btn btn-sm btn-outline-primary'
-    ]);
-
-    return new \core\output\notification($button, \core\output\notification::NOTIFY_INFO);
-}
+/**
+ * Plugin file serving for the OneClickExport plugin.
+ * This file handles the serving of backup and bulk export files.
+ *
+ * @package    local_oneclickexport
+ * @category   file
+ * @copyright  2025 Ahmed Belhaj <ahmed.belhaj@campusna.com>
+ */
 
 function local_oneclickexport_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
-    if ($filearea === 'public_backups') {
-        $itemid = array_shift($args);
+    if ($context->contextlevel != CONTEXT_SYSTEM) {
+        return false;
+    }
+
+    if (!in_array($filearea, ['backup', 'bulk'])) {
+        return false;
+    }
+
+    require_capability('local/oneclickexport:export', $context);
+
+    $fs = get_file_storage();
+    
+    try {
+        if (count($args) < 2) {
+            throw new file_serving_exception('Invalid arguments');
+        }
+
+        $itemid = (int)array_shift($args);
         $filename = array_pop($args);
-        $filepath = $args ? '/'.implode('/', $args).'/' : '/';
-        
-        $fs = get_file_storage();
-        $file = $fs->get_file($context->id, 'local_oneclickexport', 'public_backups', $itemid, $filepath, $filename);
-        
-        if ($file) {
-            send_stored_file($file, 0, 0, $forcedownload, $options);
+        $filepath = count($args) ? '/' . implode('/', $args) . '/' : '/';
+
+        $file = $fs->get_file(
+            $context->id,
+            'local_oneclickexport',
+            $filearea,
+            $itemid,
+            $filepath,
+            $filename
+        );
+
+        if (!$file) {
+            return false;
         }
-    }
-    send_file_not_found();
-}
 
-function local_oneclickexport_before_footer() {
-    global $PAGE, $COURSE, $OUTPUT;
-
-    if ($PAGE->pagelayout === 'course' && !empty($COURSE) && $COURSE->id != SITEID) {
-        $context = context_course::instance($COURSE->id);
-        if (has_capability('local/oneclickexport:export', $context)) {
-            $url = new moodle_url('/local/oneclickexport/export.php', ['id' => $COURSE->id]);
-
-            echo html_writer::div(
-                html_writer::link($url, get_string('exportcourse', 'local_oneclickexport'), [
-                    'class' => 'btn btn-primary'
-                ]),
-                'text-center mt-3'
-            );
+      
+        if ($filearea === 'bulk') {
+            global $DB, $USER;
+            
+            $export = $DB->get_record('local_oneclickexport_log', [
+                'id' => $itemid,
+                'userid' => $USER->id
+            ]);
+            
+            if (!$export) {
+                return false;
+            }
         }
-    }
-}
 
-function local_oneclickexport_get_course_export_url($courseid) {
-    return new moodle_url('/local/oneclickexport/export.php', ['id' => $courseid]);
+        send_stored_file($file, 0, 0, $forcedownload, $options);
+        
+    } catch (Exception $e) {
+        debugging("Error serving file: " . $e->getMessage(), DEBUG_DEVELOPER);
+        return false;
+    }
 }
