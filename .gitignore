@@ -1,0 +1,10 @@
+.env
+.idea/
+.vscode/
+*.swp
+*~
+*.zip
+.idea/
+notes.txt
+index.html
+*.backup

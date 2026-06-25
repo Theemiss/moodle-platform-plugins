@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XMLDB PATH="local/oneclickexport/db" VERSION="20230725" COMMENT="One-Click Export plugin">
+  <TABLES>
+    <TABLE NAME="local_oneclickexport_log" COMMENT="Stores export history records">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" COMMENT="Auto-incremented ID"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="ID of exported course"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="ID of user who performed export"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="Timestamp when export started"/>
+        <FIELD NAME="filesize" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" COMMENT="Size of exported file in bytes"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="completed" COMMENT="Export status"/>
+        <FIELD NAME="fileid" TYPE="int" LENGTH="10" UNSIGNED="true" COMMENT="File storage API ID"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" COMMENT="Modification timestamp"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="Primary key"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="course_user" UNIQUE="false" FIELDS="courseid, userid" COMMENT="Index for course-user lookup"/>
+        <INDEX NAME="timecreated" UNIQUE="false" FIELDS="timecreated" COMMENT="Index for time-based queries"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>
